@@ -4,6 +4,8 @@
 use core::sync::atomic::{AtomicPtr, Ordering};
 use core::{ffi, ptr};
 
+use crate::arch::x86_64::page::PhysAddr;
+
 static IMAGE_HANDLE: AtomicPtr<ImageHandle> = AtomicPtr::new(ptr::null_mut());
 static SYSTEM_TABLE: AtomicPtr<SystemTable> = AtomicPtr::new(ptr::null_mut());
 
@@ -93,13 +95,12 @@ pub const ALLOCATE_MAX_ADDRESS: i32 = 1;
 
 pub const LOADER_DATA: u32 = 2;
 
-pub type PhysicalAddress = u64;
 pub type VirtualAddress = u64;
 
 #[repr(C)]
 pub struct MemoryDescriptor {
     pub r#type: u32,
-    pub physical_start: PhysicalAddress,
+    pub physical_start: PhysAddr,
     pub virtual_start: VirtualAddress,
     pub number_of_pages: u64,
     pub attribute: u64,
@@ -139,9 +140,9 @@ pub struct BootServices {
         alloc_type: i32,
         mem_type: u32,
         pages: usize,
-        memory: *mut u64,
+        memory: *mut PhysAddr,
     ) -> Status,
-    pub free_pages: unsafe extern "efiapi" fn(memory: u64, pages: usize) -> Status,
+    pub free_pages: unsafe extern "efiapi" fn(memory: PhysAddr, pages: usize) -> Status,
     pub get_memory_map: unsafe extern "efiapi" fn(
         memory_map_size: *mut usize,
         memory_map: *mut MemoryDescriptor,
@@ -186,8 +187,8 @@ pub struct BootServices {
     pub protocols_per_handle: *const ffi::c_void,
     pub locate_handle_buffer: *const ffi::c_void,
     pub locate_protocol: unsafe extern "efiapi" fn(
-        protocol: *mut Guid,
-        registration: *mut ffi::c_void,
+        protocol: *const Guid,
+        registration: *const ffi::c_void,
         interface: *mut *mut ffi::c_void,
     ) -> Status,
 }

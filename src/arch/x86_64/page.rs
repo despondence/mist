@@ -87,3 +87,23 @@ impl PageTableEntry {
         self.value = phys_addr | flags;
     }
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(align(4096), C)]
+pub struct PageTable {
+    entries: [PageTableEntry; 512],
+}
+
+impl PageTable {
+    pub const EMPTY: Self = Self {
+        entries: [PageTableEntry::UNUSED; _],
+    };
+
+    pub const fn entries(&self) -> &[PageTableEntry; 512] {
+        &self.entries
+    }
+
+    pub const fn entries_mut(&mut self) -> &mut [PageTableEntry; 512] {
+        &mut self.entries
+    }
+}
