@@ -6,6 +6,7 @@
 
 use core::panic::PanicInfo;
 
+mod arch;
 mod uefi;
 
 #[unsafe(no_mangle)]
