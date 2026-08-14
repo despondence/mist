@@ -2,6 +2,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(transparent)]
+pub struct PhysAddr {
+    value: u64,
+}
+
+impl PhysAddr {
+    pub const fn new(addr: u64) -> Self {
+        Self { value: addr }
+    }
+
+    pub const fn to_u64(self) -> u64 {
+        self.value
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(transparent)]
 pub struct PageTableFlags {
     value: u64,
 }
@@ -36,5 +53,37 @@ impl PageTableFlags {
 
     pub const fn contains(self, other: Self) -> bool {
         self.intersection(other).bits() == other.bits()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(transparent)]
+pub struct PageTableEntry {
+    value: u64,
+}
+
+impl PageTableEntry {
+    const ADDR_MASK: u64 = 0x000F_FFFF_FFFF_F000;
+    const FLAGS_MASK: u64 = !Self::ADDR_MASK;
+
+    pub const UNUSED: Self = Self { value: 0 };
+
+    pub const fn set_unused(&mut self) {
+        *self = Self::UNUSED;
+    }
+
+    pub const fn flags(self) -> PageTableFlags {
+        PageTableFlags::from_bits_retain(self.value & Self::FLAGS_MASK)
+    }
+
+    pub const fn phys_addr(self) -> PhysAddr {
+        PhysAddr::new(self.value & Self::ADDR_MASK)
+    }
+
+    pub const fn set(&mut self, phys_addr: PhysAddr, flags: PageTableFlags) {
+        let phys_addr = phys_addr.to_u64() & Self::ADDR_MASK;
+        let flags = flags.bits() & Self::FLAGS_MASK;
+
+        self.value = phys_addr | flags;
     }
 }
