@@ -6,6 +6,7 @@ use core::arch;
 use crate::arch::x86_64::page::PhysAddr;
 
 pub mod page;
+pub mod port;
 
 pub struct Thread;
 
