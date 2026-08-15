@@ -6,6 +6,8 @@ use core::{ffi, ptr};
 
 use crate::arch::x86_64::page::PhysAddr;
 
+pub mod cstr16;
+
 static IMAGE_HANDLE: AtomicPtr<ImageHandle> = AtomicPtr::new(ptr::null_mut());
 static SYSTEM_TABLE: AtomicPtr<SystemTable> = AtomicPtr::new(ptr::null_mut());
 
