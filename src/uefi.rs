@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use core::sync::atomic::{AtomicPtr, Ordering};
-use core::{ffi, ptr};
+use core::{ffi, fmt, ptr};
 
 use crate::arch::x86_64::page::PhysAddr;
 
@@ -83,7 +83,7 @@ pub struct SystemTable {
     pub console_in_handle: *mut ffi::c_void,
     pub con_in: *mut ffi::c_void,
     pub console_out_handle: *mut ffi::c_void,
-    pub con_out: *mut ffi::c_void,
+    pub con_out: *mut SimpleTextOutputProtocol,
     pub standard_error_handle: *mut ffi::c_void,
     pub std_err: *mut ffi::c_void,
     pub runtime_services: *mut ffi::c_void,
@@ -164,8 +164,9 @@ pub struct BootServices {
     pub signal_event: *const ffi::c_void,
     pub close_event: *const ffi::c_void,
     pub check_event: *const ffi::c_void,
-    pub install_protocol_interface: *const ffi::c_void,
-    pub uninstall_protocol_interface: *const ffi::c_void,
+    pub install_protocol_interface: *mut ffi::c_void,
+    pub reinstall_protocol_interface: *mut ffi::c_void,
+    pub uninstall_protocol_interface: *mut ffi::c_void,
     pub handle_protocol: *const ffi::c_void,
     pub reserved: *const ffi::c_void,
     pub register_protocol_notify: *const ffi::c_void,
@@ -193,4 +194,48 @@ pub struct BootServices {
         registration: *const ffi::c_void,
         interface: *mut *mut ffi::c_void,
     ) -> Status,
+}
+
+#[repr(C)]
+pub struct SimpleTextOutputProtocol {
+    pub reset: *const ffi::c_void,
+    pub output_string: unsafe extern "efiapi" fn(
+        this: *mut SimpleTextOutputProtocol,
+        string: *const u16,
+    ) -> Status,
+    pub test_string: *const ffi::c_void,
+    pub query_mode: *const ffi::c_void,
+    pub set_mode: *const ffi::c_void,
+    pub set_attribute: *const ffi::c_void,
+    pub clear_screen: *const ffi::c_void,
+}
+
+pub struct Stdout;
+
+impl fmt::Write for Stdout {
+    fn write_str(&mut self, string: &str) -> fmt::Result {
+        let system_table = system_table();
+
+        if system_table.is_null() {
+            return Ok(());
+        }
+
+        let con_out = unsafe { (*system_table).con_out };
+
+        if con_out.is_null() {
+            return Ok(());
+        }
+
+        cstr16::with_cstr16(string, |cstr16| {
+            let status = unsafe { ((*con_out).output_string)(con_out, cstr16.as_ptr()) };
+
+            if status.is_error() {
+                Err(fmt::Error)
+            } else {
+                Ok(())
+            }
+        });
+
+        Ok(())
+    }
 }

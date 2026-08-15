@@ -4,6 +4,7 @@
 #![no_main]
 #![no_std]
 
+use core::fmt::Write;
 use core::panic::PanicInfo;
 
 mod arch;
@@ -14,9 +15,11 @@ pub unsafe extern "efiapi" fn efi_main(
     image_handle: *mut uefi::ImageHandle,
     system_table: *mut uefi::SystemTable,
 ) -> ! {
-    unsafe {
-        uefi::setup(image_handle, system_table);
-    }
+    uefi::setup(image_handle, system_table);
+
+    let mut stdout = uefi::Stdout;
+
+    writeln!(&mut stdout, "hello!");
 
     unsafe {
         kernel_main();
